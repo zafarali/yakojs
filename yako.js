@@ -1,12 +1,14 @@
 (function (root, doc) {
     'use strict';
-
+    //check if there is a previous version
     var _yako = root.yako || function () {};
     var api = function () {};
     var yako = root.yako = function (node) {
         var x = new api();
         return x._init(node);
     };
+    //version
+    yako.VERSION = '0.0.1';
     //to extend properties
     yako.extend = function (attr, json) {
         if (!json)
@@ -15,7 +17,6 @@
         while(len--) {
             attr[k[len]] = json[k[len]];
         }
-
         return this;
     };
     //to assign attributes NS
@@ -26,16 +27,15 @@
         while(len--) {
             attr.setAttributeNS(null, k[len], json[k[len]]);
         }
-
         return this;
     };
 
     yako.eventList = {};
-
+    //check if is function
     yako.isFn = function (object) {
        return !!(object && object.constructor && object.call && object.apply);
     };
-
+    //event binding
     yako.on = function (self, node, event, fn, useCapture) {
         var useCapture = useCapture || false;
         if (yako.eventList[node]) {
@@ -60,10 +60,9 @@
                 }
             });
         }
-
         return self;
     }
-
+    //event ubinding
     yako.unbind = function (self, node, event, fn) {
         var nodes = self._getNode(node, true);
         if (event && fn && yako.isFn(fn)) {
@@ -83,7 +82,6 @@
             } else {
                 return self;
             }
-
             //remove event
             if(nodes && nodes.tagName) {
                 nodes.removeEventListener(event, fn);
@@ -94,7 +92,6 @@
                     }
                 });
             }
-
         } else {
             if (yako.eventList[node] && nodes) {
                 var keys = yako.eventList[node], len = keys.length;
@@ -117,7 +114,7 @@
         }
         return self;
     }
-
+    //extend prototype + allow chaining on public functions and most private functions
     yako.extend(api.prototype, {
         attributes : {},
         extend : yako.extend,
@@ -153,13 +150,29 @@
             return node;
         },
         //appends the elements
-        //TODO:: make it support class
         _compile : function (node, childs) {
             if (Object.prototype.toString.call(childs)==='[object Array]') {
-                for (var i =0;i<childs.length;i++)
-                    node.appendChild(childs[i]);
+                if (node.tagName) {
+                    for (var i in childs)
+                        node.appendChild(childs[i]);
+                } else {
+                    Array.prototype.filter.call(node, function (element) {
+                        if (element.nodeName) {
+                            for (var i in childs)
+                                element.appendChild(childs[i]);
+                        }
+                    });
+                }
             } else {
-                node.appendChild(childs);
+                if (node.tagName) {
+                    node.appendChild(childs);
+                } else {
+                    Array.prototype.filter.call(node, function (element) {
+                        if (element.nodeName) {
+                            element.appendChild(childs[i]);
+                        }
+                    });
+                }
             }
             return this;
         },
@@ -205,7 +218,6 @@
                     }))
                 }));
             }
-
             return circles;
         },
         //the parent svg builder
@@ -252,6 +264,7 @@
             yako.on(this, '.graphData', 'mouseover', function (e) {
                 e.target.style.fill = 'blue';
                 var data = JSON.parse(decodeURIComponent(e.target.dataset.info));
+                 //TODO:: make the content customizable by the user
                 div.innerHTML = '<b>Data: ' + data.data + '</b><br><b>Interval: '+data.interval+'</b>';
                 div.style.display = 'block';
                 div.style.top = data.cy + 5;
@@ -277,6 +290,10 @@
            if (this.hover)
             this._attach();
            return this;
+        },
+        removeHover: function () {
+            yako.unbind(this,'.graphData', 'mouseout')
+            .unbind(this, '.graphData', 'mouseover');
         }
     });
 
